@@ -1,0 +1,12 @@
+default: main.o count_words.o
+	gcc main.o count_words.o -o count_words
+	
+
+main: main.c
+	gcc -c main.c
+
+count_words: count_words.c
+	gcc -c count_words.c 
+
+debug: main.c count_words.c
+	gcc -g main.c count_words.c -o count_words

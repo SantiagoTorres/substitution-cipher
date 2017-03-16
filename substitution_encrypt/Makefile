@@ -1,0 +1,24 @@
+default: main.o substitution_cipher.o create_key.o count_words.o
+	gcc main.o count_words.o substitution_cipher.o create_key.o -o encrypt_file 
+
+decrypt: decrypt_file_main.o substitution_cipher.o create_key.o count_words.o
+	gcc decrypt_file_main.o substitution_cipher.o create_key.o count_words.o -o decrypt_file
+
+decrypt_file: decrypt_file_main.c
+	gcc -c decrypt_file_main.c
+
+main: main.c
+	gcc -c main.c
+
+substitution_cipher: substitution_cipher.c
+	gcc -c substitution_cipher.c
+
+create_key: create_key.c
+	gcc -c create_key.c
+
+count_words: count_words.c
+	gcc -c count_words.c
+
+
+debug: main.c count_words.c
+	gcc -g main.c count_words.c -o count_words

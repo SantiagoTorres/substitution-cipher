@@ -1,0 +1,181 @@
+#include "count_words.h"
+
+/* Given an input filename, count the number of ocurrences
+ * of each symbol available in the printable-ascii range 
+ */
+unsigned int * get_word_frequencies_from_file(char *filename, size_t *count) {
+
+    FILE *fp;
+    char c;
+    char buffer[BUFFER_SIZE];
+    int *character_instances = NULL;
+    size_t bytes_read;
+    int file_length = 0;
+    int i;
+    
+
+    fp = fopen(filename, "rb");
+
+    if (!fp)
+        return NULL;
+
+    character_instances = malloc(
+            sizeof(*character_instances) * (PRINTABLE_CHARACTERS));
+
+    if (character_instances == NULL) {
+        fclose(fp);
+        return NULL;
+    }
+    for ( i = 0; i < PRINTABLE_CHARACTERS; i++)
+        character_instances[i] = 0;
+
+    do {
+        bytes_read = fread(buffer, 1, BUFFER_SIZE, fp);
+
+        for (i=0; i < bytes_read; i++) {
+
+            c = buffer[i] - PRINTABLE_BEGIN; 
+            if( c > 0) {
+                character_instances[c]++;
+                file_length ++;
+            }
+    
+        }
+    }while(bytes_read);
+    *count = file_length;
+
+    return character_instances;
+}
+
+void lowercase_statistics(unsigned int *character_instances) {
+
+    int i;
+    char value;
+
+    for (i = ALPHA_BEGIN; i < ALPHA_END; i ++) {
+
+        character_instances[i] += character_instances[i + LOWERCASE_LOCATION];
+        character_instances[i+LOWERCASE_LOCATION] = 0;
+
+    }
+}
+
+void flatten_statistics_to_alpha(unsigned int *character_instances, 
+        size_t *count) {
+    
+    int i;
+    size_t new_count = 0;
+
+    for (i =ALPHA_BEGIN; i < ALPHA_END; i++)
+        new_count += character_instances[i];
+
+    *count = new_count;
+
+}
+
+void pp_frequency_table(unsigned int *character_instances, size_t count, 
+        int cols) {
+
+    float relative_frequency;
+    size_t characters_printed;
+    int i;
+
+    for ( i = 0; i < PRINTABLE_CHARACTERS; i++) {
+        relative_frequency = (float)character_instances[i]*100.0;
+        relative_frequency /= count;
+
+        characters_printed += printf("  [%c] = %5.2f  ", i + PRINTABLE_BEGIN,
+                relative_frequency);
+
+        if (characters_printed >= cols-10) { 
+            printf("\n");
+            characters_printed = 0;
+        }
+
+    }
+    printf("\n");
+}
+
+
+void pp_alpha_frequency_table(unsigned int *character_instances, size_t count,
+        int cols) {
+
+    float relative_frequency;
+    float frequency_total = 0;
+    size_t characters_printed = 0;
+    int i;
+
+    for ( i = ALPHA_BEGIN; i < ALPHA_END ; i++) {
+        relative_frequency = (float)character_instances[i]*100.0;
+        relative_frequency /= count;
+        frequency_total += relative_frequency;
+
+        characters_printed += printf("  [%c] = %5.2f  ", i + PRINTABLE_BEGIN,
+                relative_frequency);
+
+        if (characters_printed >= cols-10) { 
+            printf("\n");
+            characters_printed = 0;
+        }
+
+    }
+    printf("\n[!!] frequency total: %f", frequency_total);
+    printf("\n");
+
+}
+
+
+
+WEIGHTED_CHAR * alpha_frequency_table_to_weighted_char(
+        unsigned int *character_instances, size_t count) {
+    
+
+    // build a new table for the complete list of wharacters
+    WEIGHTED_CHAR *occurrence_table;
+    occurrence_table = malloc(
+        sizeof(*occurrence_table) * ALPHA_END -ALPHA_BEGIN);
+    int i;
+    float relative_frequency;
+
+    for (i = 0; i < ALPHA_END - ALPHA_BEGIN; i++) {
+        occurrence_table[i].character = i + ALPHA_BEGIN + PRINTABLE_BEGIN;
+        relative_frequency = (float)character_instances[i+ALPHA_BEGIN] * 100.0;
+        occurrence_table[i].weight = relative_frequency/count;
+    }
+
+    quicksort_weighted_chars(occurrence_table, 0, ALPHA_END - ALPHA_BEGIN - 1);
+
+    
+    for (i = 0; i < ALPHA_END - ALPHA_BEGIN; i++)
+        printf(" %c -> %f \n", occurrence_table[i].character,
+                                  occurrence_table[i].weight);
+    
+}
+
+
+void quicksort_weighted_chars(WEIGHTED_CHAR *arr, int left, int right) {
+      int i = left, j = right;
+      WEIGHTED_CHAR tmp;
+      float pivot = arr[(left + right) / 2].weight;
+ 
+      /* partition */
+      while (i <= j) {
+            while (arr[i].weight < pivot)
+                  i++;
+            while (arr[j].weight > pivot)
+                  j--;
+            if (i <= j) {
+                  tmp = arr[i];
+                  arr[i] = arr[j];
+                  arr[j] = tmp;
+                  i++;
+                  j--;
+            }
+      };
+ 
+      /* recursion */
+      if (left < j)
+            quicksort_weighted_chars(arr, left, j);
+      if (i < right)
+            quicksort_weighted_chars(arr, i, right);
+}
